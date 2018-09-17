@@ -6,8 +6,8 @@ class Input(val numberOfRooms: Int, val cost: IntArray, val nextRoom: IntArray)
 
 fun readInput(scanner: Scanner): Input {
     val numberOfRooms = scanner.nextInt()
-    val cost = IntArray(numberOfRooms, {scanner.nextInt()})
-    val nextRoom = IntArray(numberOfRooms, {scanner.nextInt() - 1})
+    val cost = IntArray(numberOfRooms) { scanner.nextInt() }
+    val nextRoom = IntArray(numberOfRooms) { scanner.nextInt() - 1 }
     return Input(numberOfRooms, cost, nextRoom)
 }
 
@@ -17,16 +17,16 @@ class Solution(private val input: Input) {
         WHITE, GREY, BLACK
     }
 
-    private val colors = Array(input.numberOfRooms, { Color.WHITE })
-    private val stack = mutableListOf<Int>()
+    private val colors = Array(input.numberOfRooms) { Color.WHITE }
+    private val stack = Stack<Int>()
 
     private fun calculateCostOfReachableTraps(currentRoom: Int): Int {
         colors[currentRoom] = Color.GREY
-        stack.add(currentRoom)
+        stack.push(currentRoom)
         val followingRoom = input.nextRoom[currentRoom]
         val answer = when (colors[followingRoom]) {
             Color.GREY -> {
-                var i = stack.size - 1
+                var i = stack.lastIndex
 
                 var bestTrap = followingRoom
                 while (stack[i] != followingRoom) {
@@ -41,7 +41,7 @@ class Solution(private val input: Input) {
             Color.BLACK -> 0
         }
         colors[currentRoom] = Color.BLACK
-        stack.removeAt(stack.size - 1)
+        stack.pop()
         return answer
     }
 
