@@ -1,13 +1,12 @@
 package ru.hse.spb
 
-import org.antlr.v4.runtime.ParserRuleContext
 import ru.hse.spb.parser.FunLangBaseVisitor
 import ru.hse.spb.parser.FunLangParser
 
 class FunLangVisitor: FunLangBaseVisitor<Int>() {
 
     private var scope = Scope(null)
-    private var returnValue : Int? = null
+    private var returnValue: Int? = null
     private var toReturn = false
 
     override fun visitFile(ctx: FunLangParser.FileContext): Int {
@@ -44,36 +43,34 @@ class FunLangVisitor: FunLangBaseVisitor<Int>() {
     }
 
     override fun visitExpression(ctx: FunLangParser.ExpressionContext): Int {
-        if (ctx.IDENTIFIER() != null) {
-            return scope.variableDict.get(ctx.IDENTIFIER().text)
+        return when {
+            ctx.IDENTIFIER() != null -> scope.variableDict.get(ctx.IDENTIFIER().text)
+            ctx.LITERAL() != null -> Integer.parseInt(ctx.LITERAL().text)
+            ctx.inBraces != null -> ctx.inBraces.accept(this)
+            ctx.left == null -> ctx.getChild(0).accept(this)
+            ctx.operator.text != null -> {
+                val leftValue = ctx.left.accept(this)
+                val rightValue = ctx.right.accept(this)
+                when (ctx.operator.text) {
+                    "*" -> leftValue * rightValue
+                    "/" -> leftValue / rightValue
+                    "%" -> leftValue % rightValue
+                    "+" -> leftValue + rightValue
+                    "-" -> leftValue - rightValue
+                    ">" -> booleanToInt(leftValue > rightValue)
+                    "<" -> booleanToInt(leftValue < rightValue)
+                    ">=" -> booleanToInt(leftValue >= rightValue)
+                    "<=" -> booleanToInt(leftValue <= rightValue)
+                    "==" -> booleanToInt(leftValue == rightValue)
+                    "!=" -> booleanToInt(leftValue != rightValue)
+                    "&&" -> booleanToInt(leftValue > 0 && rightValue > 0)
+                    "||" -> booleanToInt(leftValue > 0 || rightValue > 0)
+                    else -> throw InterpreterException("Didn't manage to parse expression")
+                }
+            }
+            else -> throw InterpreterException("Didn't manage to parse expression")
         }
-        if (ctx.LITERAL() != null) {
-            return Integer.parseInt(ctx.LITERAL().text)
-        }
-        if (ctx.inBraces != null) {
-            return ctx.inBraces.accept(this)
-        }
-        if (ctx.left == null) {
-            return ctx.getChild(0).accept(this)
-        }
-        val leftValue = ctx.left.accept(this)
-        val rightValue = ctx.right.accept(this)
-        when (ctx.operator.text) {
-            "*" -> return leftValue * rightValue
-            "/" -> return leftValue / rightValue
-            "%" -> return leftValue % rightValue
-            "+" -> return leftValue + rightValue
-            "-" -> return leftValue - rightValue
-            ">" -> return booleanToInt(leftValue > rightValue)
-            "<" -> return booleanToInt(leftValue < rightValue)
-            ">=" -> return booleanToInt(leftValue >= rightValue)
-            "<=" -> return booleanToInt(leftValue <= rightValue)
-            "==" -> return booleanToInt(leftValue == rightValue)
-            "!=" -> return booleanToInt(leftValue != rightValue)
-            "&&" -> return booleanToInt(leftValue > 0 && rightValue > 0)
-            "||" -> return booleanToInt(leftValue > 0 || rightValue > 0)
-        }
-        throw InterpreterException("Didn't manage to parse expression")
+
     }
 
     override fun visitFunctionCall(ctx: FunLangParser.FunctionCallContext): Int {
