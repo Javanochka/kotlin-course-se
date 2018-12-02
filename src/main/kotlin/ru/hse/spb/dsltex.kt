@@ -6,9 +6,7 @@ abstract class Element {
     abstract fun render(builder: StringBuilder, indent: String)
 
     override fun toString(): String {
-        val stringBuilder = StringBuilder()
-        render(stringBuilder, "")
-        return stringBuilder.toString()
+        return buildString { render(this@buildString, "") }
     }
     fun toOutputStream(out: OutputStream) {
         val writer = out.writer()
@@ -31,14 +29,14 @@ infix fun String.to(a: String): String {
 private const val TEX_INDENT = "    "
 
 fun printParameters(list: List<String>): String {
-    return if (list.isEmpty()) "" else "[${list.joinToString(", ")}]"
+    return if (list.isEmpty()) "" else list.joinToString(", ", prefix = "[", postfix = "]")
 }
 
 @DslMarker
 annotation class TexTagMarker
 
 @TexTagMarker
-open class SingleTexTag(val name: String, val argument: String, vararg val params: String): Element() {
+open class SingleTexTag(private val name: String, private val argument: String, private vararg val params: String): Element() {
     override fun render(builder: StringBuilder, indent: String) {
         builder.append("$indent\\$name${printParameters(params.toList())}{$argument}\n")
     }
@@ -50,7 +48,7 @@ class UsePackage(argument: String, vararg params: String): SingleTexTag("usepack
 
 
 @TexTagMarker
-open class CustomTag(val name: String, vararg val params: String): Element() {
+open class CustomTag(private val name: String, vararg val params: String): Element() {
     protected val children = arrayListOf<Element>()
 
     override fun render(builder: StringBuilder, indent: String) {
@@ -66,7 +64,7 @@ open class CustomTag(val name: String, vararg val params: String): Element() {
     }
 
     operator fun String.unaryPlus() {
-        children.add(TextElement(this))
+        children += TextElement(this)
     }
 
     fun math(init: Math.() -> Unit) = initTag(Math(), init)
@@ -81,7 +79,7 @@ class Document: CustomTag("document") {
     private val headerChildren = arrayListOf<Element>()
 
     override fun render(builder: StringBuilder, indent: String) {
-        headerChildren.forEach { it -> it.render(builder, indent) }
+        headerChildren.forEach { it.render(builder, indent) }
         super.render(builder, indent)
     }
 
@@ -92,9 +90,7 @@ class Document: CustomTag("document") {
 }
 
 fun document(init: Document.() -> Unit): Document {
-    val document = Document()
-    document.init()
-    return document
+    return Document().apply(init)
 }
 
 class Frame(private val frameTitle: String, vararg params: String): CustomTag("frame", *params) {
@@ -109,7 +105,7 @@ class Math: CustomTag("math")
 class Item(vararg params: String): CustomTag("item", *params) {
     override fun render(builder: StringBuilder, indent: String) {
         builder.append("$indent\\item${printParameters(params.toList())}\n")
-        children.forEach { it -> it.render(builder, indent + TEX_INDENT) }
+        children.forEach { it.render(builder, indent + TEX_INDENT) }
     }
 }
 
